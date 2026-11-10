@@ -23,7 +23,7 @@ Related examples
 from __future__ import annotations
 
 from videoipath_automation_tool import VideoIPathApp
-from videoipath_automation_tool.apps.inspect import InspectCommitConflictError, InspectCommitError
+from videoipath_automation_tool.utils.cross_app_errors import ApiCommitConflictError, ApiCommitError
 
 SERVER_ADDRESS = "<your-videoipath-ip-or-domain>"
 USERNAME = "<your-videoipath-api-user>"
@@ -54,7 +54,7 @@ def main() -> None:
             result = tx.commit()
         print("Committed:", result.applied_ids)
         # > Committed: ['device34', 'device34.1.0', ...]
-    except InspectCommitError as error:
+    except ApiCommitError as error:
         # The server rejected the commit (validation / apply gate) — nothing was written.
         print("Server rejected the commit:", error)
         return
@@ -73,7 +73,7 @@ def main() -> None:
             print("Committed on attempt", attempt)
             # > Committed on attempt 1
             break
-        except InspectCommitConflictError as conflict:
+        except ApiCommitConflictError as conflict:
             # Someone changed leaf-1 since we staged it.
             print(f"Conflict on {[c.entity_id for c in conflict.conflicts]}; rebasing.")
             tx.rebase()

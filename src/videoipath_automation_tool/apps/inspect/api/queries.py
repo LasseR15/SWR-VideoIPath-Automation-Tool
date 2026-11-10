@@ -18,66 +18,54 @@ projections here are deliberately trimmed to stay well within the URI limit.
 
 from __future__ import annotations
 
-import urllib.parse
-
-from videoipath_automation_tool.apps.inspect.errors import InspectQueryTooLongError
+from videoipath_automation_tool.utils.cross_app_utils import build_req_path_data
 
 # Base for all collector data reads.
 _DATA = "/rest/v2/data"
 
-# Conservative URI length ceiling (path only). Verified queries are ~200-370 chars;
-# the full UI projection (thousands of chars) triggers HTTP 414 behind the proxy.
-MAX_QUERY_LENGTH = 4000
-
-
-def encode(path: str) -> str:
-    """Percent-encode a collector query path, preserving projection-grammar characters."""
-    return urllib.parse.quote(path, safe=_SAFE)
-
-
 def device_skeleton() -> str:
     """GET path for the device skeleton (all devices, no module/port detail)."""
-    return _build(_DEVICE_SKELETON)
+    return build_req_path_data(_DEVICE_SKELETON)
 
 
 def device_detail(device_id: str) -> str:
     """GET path for one device's full nodeStatus sub-tree (modules, ports, vertexInfo, ...)."""
-    return _build(f"/status/collector/inspect/nodeStatus/{device_id}/**")
+    return build_req_path_data(f"/status/collector/inspect/nodeStatus/{device_id}/**")
 
 
 def edge_skeleton() -> str:
     """GET path for the lean edge skeleton (all device pairs, connectivity + status severities)."""
-    return _build(_EDGE_SKELETON)
+    return build_req_path_data(_EDGE_SKELETON)
 
 
 def edge_pair(pair_id: str) -> str:
     """GET path for a single external-edge device pair (targeted refresh)."""
-    return _build(f"/status/collector/externalEdgesByDeviceKey/{pair_id}" + _EDGE_LEAN_TAIL)
+    return build_req_path_data(f"/status/collector/externalEdgesByDeviceKey/{pair_id}" + _EDGE_LEAN_TAIL)
 
 
 def paths_section() -> str:
     """GET path for the services/paths section."""
-    return _build(_PATHS_SECTION)
+    return build_req_path_data(_PATHS_SECTION)
 
 
 def alarms_section() -> str:
     """GET path for the current-alarms section (``status/alarms/current``)."""
-    return _build(_ALARMS_SECTION)
+    return build_req_path_data(_ALARMS_SECTION)
 
 
 def collector_full() -> str:
     """GET path for the full collector aggregate (eager / fallback mode)."""
-    return _build(_COLLECTOR_FULL)
+    return build_req_path_data(_COLLECTOR_FULL)
 
 
 def virtual_templates() -> str:
     """GET path for all port templates (``status/network/virtualTemplates``)."""
-    return _build(_VIRTUAL_TEMPLATES)
+    return build_req_path_data(_VIRTUAL_TEMPLATES)
 
 
 def virtual_devices() -> str:
     """GET path for all virtual device definitions (``status/network/virtualDevices``)."""
-    return _build(_VIRTUAL_DEVICES)
+    return build_req_path_data(_VIRTUAL_DEVICES)
 
 
 def driver_factory_labels(device_id: str) -> str:
@@ -87,7 +75,7 @@ def driver_factory_labels(device_id: str) -> str:
     the driver graph from ``status/network/nGraphFromDrivers`` (not collector, not config nGraph).
     One device id returns the baseDevice plus all vertices/edges keyed by element id.
     """
-    return _build(f"/status/network/nGraphFromDrivers/{device_id}/*/fDescriptor/**")
+    return build_req_path_data(f"/status/network/nGraphFromDrivers/{device_id}/*/fDescriptor/**")
 
 
 def config_factory_labels(*element_ids: str) -> str:
@@ -99,14 +87,10 @@ def config_factory_labels(*element_ids: str) -> str:
     if not element_ids:
         raise ValueError("element_ids must not be empty.")
     clauses = " or ".join(f"_id='{element_id}' or deviceId='{element_id}'" for element_id in element_ids)
-    return _build(f"/config/network/nGraphElements/* where {clauses} /fDescriptor/**")
+    return build_req_path_data(f"/config/network/nGraphElements/* where {clauses} /fDescriptor/**")
 
 
 # --- Internal ---
-
-# Characters that are meaningful in the projection grammar and must survive encoding.
-# Everything else (spaces, double quotes, ...) is percent-encoded.
-_SAFE = "/*,'=()"
 
 # Device skeleton: identity + descriptor + meta (incl. coordinates) + status + syncSeverity
 # + tags, with the module sub-tree suppressed ("_noId"). ~200 char URL, ~30 KB / 30 devices.
@@ -160,15 +144,7 @@ _VIRTUAL_TEMPLATES = "/status/network/virtualTemplates/**"
 _VIRTUAL_DEVICES = "/status/network/virtualDevices/**"
 
 
-def _build(path: str) -> str:
-    encoded = encode(_DATA + path)
-    if len(encoded) > MAX_QUERY_LENGTH:
-        raise InspectQueryTooLongError(len(encoded), MAX_QUERY_LENGTH)
-    return encoded
-
-
 __all__ = [
-    "MAX_QUERY_LENGTH",
     "alarms_section",
     "collector_full",
     "config_factory_labels",
@@ -177,7 +153,6 @@ __all__ = [
     "driver_factory_labels",
     "edge_pair",
     "edge_skeleton",
-    "encode",
     "paths_section",
     "virtual_devices",
     "virtual_templates",

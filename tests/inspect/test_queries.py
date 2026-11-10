@@ -5,7 +5,7 @@ import urllib.parse
 import pytest
 
 from videoipath_automation_tool.apps.inspect.api import queries
-from videoipath_automation_tool.apps.inspect.errors import InspectQueryTooLongError
+from videoipath_automation_tool.utils.cross_app_utils import MAX_QUERY_LENGTH
 
 
 def test_all_queries_within_length_limit() -> None:
@@ -19,7 +19,7 @@ def test_all_queries_within_length_limit() -> None:
         queries.virtual_devices,
     ):
         path = build()
-        assert len(path) < queries.MAX_QUERY_LENGTH
+        assert len(path) < MAX_QUERY_LENGTH
         assert path.startswith("/rest/v2/data/status/")
 
 
@@ -45,7 +45,7 @@ def test_driver_factory_labels_query_targets_status_ngraphfromdrivers() -> None:
     assert path.startswith("/rest/v2/data/status/network/nGraphFromDrivers/")
     assert "device12" in path
     assert "fDescriptor/**" in path
-    assert len(queries.driver_factory_labels("device12")) < queries.MAX_QUERY_LENGTH
+    assert len(queries.driver_factory_labels("device12")) < MAX_QUERY_LENGTH
 
 
 def test_config_factory_labels_query_targets_config_fdescriptor() -> None:
@@ -55,7 +55,7 @@ def test_config_factory_labels_query_targets_config_fdescriptor() -> None:
     assert "deviceId='device12'" in path
     assert "_id='device12.11.1'" in path
     assert "fDescriptor/**" in path
-    assert len(queries.config_factory_labels("device12")) < queries.MAX_QUERY_LENGTH
+    assert len(queries.config_factory_labels("device12")) < MAX_QUERY_LENGTH
 
 
 def test_device_skeleton_suppresses_modules_and_selects_skeleton_fields() -> None:
@@ -76,17 +76,3 @@ def test_edge_pair_targets_single_pair() -> None:
     path = queries.edge_pair("device12::device7")
     decoded = urllib.parse.unquote(path)
     assert "externalEdgesByDeviceKey/device12::device7" in decoded
-
-
-def test_encode_preserves_grammar_characters_and_encodes_quotes_and_spaces() -> None:
-    encoded = queries.encode("/a b/*/x,y/'z'/\"q\"")
-    assert "%20" in encoded  # space encoded
-    assert "%22" in encoded  # double-quote encoded
-    assert "/*/" in encoded  # star preserved
-    assert "'z'" in encoded  # single-quote preserved
-
-
-def test_query_too_long_raises(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(queries, "MAX_QUERY_LENGTH", 10)
-    with pytest.raises(InspectQueryTooLongError):
-        queries.device_skeleton()

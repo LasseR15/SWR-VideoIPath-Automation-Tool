@@ -42,6 +42,7 @@ from videoipath_automation_tool.apps.inspect.model.common import (
     InspectSeverity,
     format_repr,
 )
+from videoipath_automation_tool.utils.cross_app_classes import HydrationLevel
 
 if TYPE_CHECKING:
     from videoipath_automation_tool.apps.inspect.api import InspectAPI
@@ -56,11 +57,6 @@ if TYPE_CHECKING:
         InspectApiEdgeForm,
         InspectApiLookupVertexResponseData,
     )
-
-
-class HydrationLevel(str, Enum):
-    SKELETON = "skeleton"
-    FULL = "full"
 
 
 class InspectSnapshot:

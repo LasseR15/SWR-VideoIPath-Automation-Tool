@@ -29,12 +29,12 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 from pydantic import Field
 
-from videoipath_automation_tool.apps.inspect.errors import (
-    InspectCommitConflictError,
-    InspectCommitError,
-    InspectConflict,
-    InspectEntityNotFoundError,
-    InspectError,
+from videoipath_automation_tool.apps.inspect.errors import InspectError
+from videoipath_automation_tool.utils.cross_app_errors import (
+    ApiCommitConflictError,
+    ApiCommitError,
+    ApiCommitConflict,
+    ApiEntityNotFoundError,
 )
 from videoipath_automation_tool.apps.inspect.model.actions import (
     InspectApiEdgeForm,
@@ -432,7 +432,7 @@ class InspectTransaction:
         if also_opposite:
             opposite_id = _opposite_edge_id(edge_id)
             if self._lookup_edge_form(opposite_id) is None:
-                raise InspectEntityNotFoundError(opposite_id, kind="edge")
+                raise ApiEntityNotFoundError(opposite_id, kind="edge")
             self._apply_edge_update(opposite_id, fields)
         return self
 
@@ -561,7 +561,7 @@ class InspectTransaction:
             delta = self._build_delta()
             response = self._api.update_topology(delta)
             if not response.committed:
-                raise InspectCommitError(response)
+                raise ApiCommitError(response)
             created_ids = list(response.data.validation.createIds)
 
         if module_entries:
@@ -636,7 +636,7 @@ class InspectTransaction:
             )
         device_id = _device_of(module_id)
         if self._snapshot.get_module(device_id, module_id) is None:
-            raise InspectEntityNotFoundError(module_id, kind="module")
+            raise ApiEntityNotFoundError(module_id, kind="module")
         baseline_tags = self._module_local_tags(module_id)
         entry = _Staged(
             kind=_MODULE,
@@ -697,7 +697,7 @@ class InspectTransaction:
             return self._lookup_vertex_form(entity_id, required=True)
         form = self._lookup_edge_form(entity_id)
         if form is None:
-            raise InspectEntityNotFoundError(entity_id, kind="edge")
+            raise ApiEntityNotFoundError(entity_id, kind="edge")
         return form
 
     def _lookup_device_form(self, device_id: str, required: bool) -> Optional[InspectApiLookupInspectDeviceFields]:
@@ -705,7 +705,7 @@ class InspectTransaction:
             response = self._api.lookup_inspect_device(device_id)
         except Exception as exc:  # connector-level miss
             if required:
-                raise InspectEntityNotFoundError(device_id, kind="device") from exc
+                raise ApiEntityNotFoundError(device_id, kind="device") from exc
             return None
         return response.data.fields
 
@@ -714,7 +714,7 @@ class InspectTransaction:
         item = response.data.get(vertex_id)
         if item is None:
             if required:
-                raise InspectEntityNotFoundError(vertex_id, kind="vertex")
+                raise ApiEntityNotFoundError(vertex_id, kind="vertex")
             return None
         return item.fields
 
@@ -727,21 +727,21 @@ class InspectTransaction:
 
     def _check_conflicts(self) -> None:
         current = self._refetch_baselines()
-        conflicts: list[InspectConflict] = []
+        conflicts: list[ApiCommitConflict] = []
         for entry in self._entries.values():
             if entry.kind == _MODULE or entry.remove or entry.is_new or entry.baseline_dump is None:
                 continue
             key = (entry.kind, entry.entity_id)
             server_form = current.get(key)
             if server_form is None:
-                conflicts.append(InspectConflict(entry.entity_id, entry.kind, {"__exists__": (True, False)}))
+                conflicts.append(ApiCommitConflict(entry.entity_id, entry.kind, {"__exists__": (True, False)}))
                 continue
             server_dump = server_form.model_dump(mode="json")
             if server_dump != entry.baseline_dump:
                 diffs = _field_diffs(entry.baseline_dump, server_dump)
-                conflicts.append(InspectConflict(entry.entity_id, entry.kind, diffs))
+                conflicts.append(ApiCommitConflict(entry.entity_id, entry.kind, diffs))
         if conflicts:
-            raise InspectCommitConflictError(conflicts)
+            raise ApiCommitConflictError(conflicts)
 
     def _refetch_baselines(self) -> dict[tuple[str, str], Any]:
         """Batched re-fetch of every conflict-checkable staged entity's current server form."""

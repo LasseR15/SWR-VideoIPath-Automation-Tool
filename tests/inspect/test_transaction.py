@@ -13,11 +13,7 @@ from typing import Any
 import pytest
 
 from videoipath_automation_tool.apps.inspect.transaction import InspectTransaction
-from videoipath_automation_tool.apps.inspect.errors import (
-    InspectCommitConflictError,
-    InspectCommitError,
-    InspectEntityNotFoundError,
-)
+from videoipath_automation_tool.utils.cross_app_errors import ApiCommitConflictError, ApiCommitError, ApiEntityNotFoundError
 from videoipath_automation_tool.apps.inspect.model.actions import (
     InspectApiLookupEdgeResponseItem,
     InspectApiLookupInspectDeviceResponse,
@@ -88,7 +84,7 @@ def test_update_edge_applies_intent() -> None:
 def test_update_edge_missing_raises_not_found() -> None:
     api = FakeAPI()
     with _txn(api) as tx:
-        with pytest.raises(InspectEntityNotFoundError):
+        with pytest.raises(ApiEntityNotFoundError):
             tx.update_edge(EDGE_ID, weight=42)
 
 
@@ -133,7 +129,7 @@ def test_update_edge_also_opposite_missing_raises() -> None:
     api = FakeAPI()
     api.edges[EDGE_ID] = _edge_item()
     with _txn(api) as tx:
-        with pytest.raises(InspectEntityNotFoundError):
+        with pytest.raises(ApiEntityNotFoundError):
             tx.update_edge(EDGE_ID, weight=7, also_opposite=True)
 
 
@@ -326,7 +322,7 @@ def test_commit_failure_raises_commit_error() -> None:
     )
     with _txn(api) as tx:
         tx.remove("nonexistent-edge-id-xyz")
-        with pytest.raises(InspectCommitError) as exc:
+        with pytest.raises(ApiCommitError) as exc:
             tx.commit()
     assert "non-existent" in str(exc.value)
 
@@ -347,7 +343,7 @@ def test_conflict_detected_on_baseline_change() -> None:
     tx = _txn(api)
     tx.update_edge(EDGE_ID, weight=99)
     api.edges[EDGE_ID] = _edge_item(weight=5)  # concurrent out-of-band change
-    with pytest.raises(InspectCommitConflictError) as exc:
+    with pytest.raises(ApiCommitConflictError) as exc:
         tx.commit()
     conflict = exc.value.conflicts[0]
     assert conflict.entity_id == EDGE_ID
@@ -372,7 +368,7 @@ def test_conflict_when_entity_vanishes() -> None:
     tx = _txn(api)
     tx.update_edge(EDGE_ID, weight=7)
     api.edges.clear()  # removed out-of-band
-    with pytest.raises(InspectCommitConflictError) as exc:
+    with pytest.raises(ApiCommitConflictError) as exc:
         tx.commit()
     assert "__exists__" in exc.value.conflicts[0].field_diffs
 
@@ -383,7 +379,7 @@ def test_rebase_refetches_baseline() -> None:
     tx = _txn(api)
     tx.update_edge(EDGE_ID, weight=99)
     api.edges[EDGE_ID] = _edge_item(weight=5)
-    with pytest.raises(InspectCommitConflictError):
+    with pytest.raises(ApiCommitConflictError):
         tx.commit()
     tx.rebase()
     tx.commit()  # now baseline == server, no conflict

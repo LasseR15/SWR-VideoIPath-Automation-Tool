@@ -55,7 +55,7 @@ from videoipath_automation_tool.apps.inspect.model.virtual import (
     InspectApiVirtualTemplateItem,
 )
 from videoipath_automation_tool.connector.vip_connector import VideoIPathConnector
-from videoipath_automation_tool.utils.cross_app_utils import create_fallback_logger
+from videoipath_automation_tool.utils.cross_app_utils import create_fallback_logger, extract_items_from_rsp
 
 from . import queries
 
@@ -71,13 +71,13 @@ class InspectAPI:
     def get_device_skeleton(self) -> list[InspectApiNodeStatusItem]:
         """All devices without module/port detail (skeleton load)."""
         response = self.vip_connector.rest.get(queries.device_skeleton(), allow_projection=True)
-        items = _extract_items(response.data, "status", "collector", "inspect", "nodeStatus")
+        items = extract_items_from_rsp(response.data, "status", "collector", "inspect", "nodeStatus")
         return [InspectApiNodeStatusItem.model_validate(item) for item in items]
 
     def get_device_detail(self, device_id: str) -> InspectApiNodeStatusItem | None:
         """One device's full nodeStatus sub-tree (lazy hydration)."""
         response = self.vip_connector.rest.get(queries.device_detail(device_id), allow_projection=True)
-        items = _extract_items(response.data, "status", "collector", "inspect", "nodeStatus")
+        items = extract_items_from_rsp(response.data, "status", "collector", "inspect", "nodeStatus")
         if not items:
             return None
         return InspectApiNodeStatusItem.model_validate(items[0])
@@ -85,13 +85,13 @@ class InspectAPI:
     def get_edge_skeleton(self) -> list[InspectApiExternalEdgesByDeviceKeyItem]:
         """All external-edge device pairs, lean projection."""
         response = self.vip_connector.rest.get(queries.edge_skeleton(), allow_projection=True)
-        items = _extract_items(response.data, "status", "collector", "externalEdgesByDeviceKey")
+        items = extract_items_from_rsp(response.data, "status", "collector", "externalEdgesByDeviceKey")
         return [InspectApiExternalEdgesByDeviceKeyItem.model_validate(item) for item in items]
 
     def get_edge_pair(self, pair_id: str) -> InspectApiExternalEdgesByDeviceKeyItem | None:
         """A single external-edge device pair (targeted refresh)."""
         response = self.vip_connector.rest.get(queries.edge_pair(pair_id), allow_projection=True)
-        items = _extract_items(response.data, "status", "collector", "externalEdgesByDeviceKey")
+        items = extract_items_from_rsp(response.data, "status", "collector", "externalEdgesByDeviceKey")
         if not items:
             return None
         return InspectApiExternalEdgesByDeviceKeyItem.model_validate(items[0])
@@ -99,13 +99,13 @@ class InspectAPI:
     def get_paths_section(self) -> list[InspectApiPathItem]:
         """The services/paths section."""
         response = self.vip_connector.rest.get(queries.paths_section(), allow_projection=True)
-        items = _extract_items(response.data, "status", "collector", "inspect", "paths")
+        items = extract_items_from_rsp(response.data, "status", "collector", "inspect", "paths")
         return [InspectApiPathItem.model_validate(item) for item in items]
 
     def get_alarms_section(self) -> list[InspectApiAlarmItem]:
         """The current-alarms section (``status/alarms/current``)."""
         response = self.vip_connector.rest.get(queries.alarms_section(), allow_projection=True)
-        items = _extract_items(response.data, "status", "alarms", "current")
+        items = extract_items_from_rsp(response.data, "status", "alarms", "current")
         return [InspectApiAlarmItem.model_validate(item) for item in items]
 
     def get_collector_full(self) -> InspectApiCollectorResponse:
@@ -118,13 +118,13 @@ class InspectAPI:
     def get_virtual_templates(self) -> list[InspectApiVirtualTemplateItem]:
         """All port templates (UI: Manage port templates)."""
         response = self.vip_connector.rest.get(queries.virtual_templates(), allow_projection=True)
-        items = _extract_items(response.data, "status", "network", "virtualTemplates")
+        items = extract_items_from_rsp(response.data, "status", "network", "virtualTemplates")
         return [InspectApiVirtualTemplateItem.model_validate(item) for item in items]
 
     def get_virtual_devices(self) -> list[InspectApiVirtualDeviceInstance]:
         """All virtual device module/port definitions."""
         response = self.vip_connector.rest.get(queries.virtual_devices(), allow_projection=True)
-        items = _extract_items(response.data, "status", "network", "virtualDevices")
+        items = extract_items_from_rsp(response.data, "status", "network", "virtualDevices")
         return [InspectApiVirtualDeviceInstance.model_validate(item) for item in items]
 
     def get_ngraph_factory_labels(self, *element_ids: str) -> dict[str, str]:
@@ -139,11 +139,11 @@ class InspectAPI:
         result: dict[str, str] = {}
         for device_id in _factory_label_device_roots(*element_ids):
             response = self.vip_connector.rest.get(queries.driver_factory_labels(device_id), allow_projection=True)
-            items = _extract_items(response.data, "status", "network", "nGraphFromDrivers")
+            items = extract_items_from_rsp(response.data, "status", "network", "nGraphFromDrivers")
             result.update(_flatten_driver_factory_labels(items))
         if not result:
             response = self.vip_connector.rest.get(queries.config_factory_labels(*element_ids), allow_projection=True)
-            items = _extract_items(response.data, "config", "network", "nGraphElements")
+            items = extract_items_from_rsp(response.data, "config", "network", "nGraphElements")
             result.update(_flatten_config_factory_labels(items))
         return result
 
@@ -283,21 +283,6 @@ def _fdescriptor_label(descriptor: Any) -> str | None:
         return None
     label = descriptor.get("label")
     return label if isinstance(label, str) and label else None
-
-
-def _extract_items(data: dict[str, Any], *path: str) -> list[dict[str, Any]]:
-    """Walk ``data`` down ``path`` and return the ``_items`` list (empty if any node is absent)."""
-    node: Any = data
-    for key in path:
-        if not isinstance(node, dict):
-            return []
-        node = node.get(key)
-        if node is None:
-            return []
-    if isinstance(node, dict):
-        items = node.get("_items", [])
-        return items if isinstance(items, list) else []
-    return []
 
 
 def _header_dict(response: Any) -> dict[str, Any]:

@@ -17,7 +17,7 @@ from __future__ import annotations
 import pytest
 
 from videoipath_automation_tool.apps.inspect import VirtualDeviceSpec
-from videoipath_automation_tool.apps.inspect.errors import InspectCommitConflictError, InspectCommitError
+from videoipath_automation_tool.utils.cross_app_errors import ApiCommitConflictError, ApiCommitError
 from videoipath_automation_tool.apps.inspect.model.common import InspectSeverity
 from videoipath_automation_tool.apps.videoipath_app import VideoIPathApp
 
@@ -186,7 +186,7 @@ def test_transaction_atomicity(app: VideoIPathApp, topology_builder: TopologyBui
     topology_builder.link(id_a, id_b)
     app.inspect.refresh()
     edge_id = edges_between(app, id_a, id_b)[0].id
-    with pytest.raises(InspectCommitError), app.inspect.transaction() as tx:
+    with pytest.raises(ApiCommitError), app.inspect.transaction() as tx:
         tx.update_edge(edge_id, weight=13)
         tx.remove("does-not-exist::also-not-real")
         tx.commit()
@@ -203,7 +203,7 @@ def test_conflict_detection(app: VideoIPathApp, topology_builder: TopologyBuilde
     tx.update_edge(edge_id, weight=21)
     other = VideoIPathApp()
     other.inspect.update_edge(edge_id, weight=9)
-    with pytest.raises(InspectCommitConflictError) as exc:
+    with pytest.raises(ApiCommitConflictError) as exc:
         tx.commit()
     assert any(conflict.entity_id == edge_id for conflict in exc.value.conflicts)
     tx.rebase()

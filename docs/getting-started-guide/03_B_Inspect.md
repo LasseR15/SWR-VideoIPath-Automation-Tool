@@ -167,14 +167,13 @@ logs a warning).
 ### 3.3. Handling concurrent changes
 
 If another user changed a staged entity since you staged it, `commit()` raises
-`InspectCommitConflictError` and sends nothing:
+`ApiCommitConflictError` and sends nothing:
 
 ```python
-from videoipath_automation_tool.apps.inspect import InspectCommitConflictError
-
+from videoipath_automation_tool.utils.cross_app_errors import ApiCommitConflictError
 try:
     tx.commit()
-except InspectCommitConflictError as exc:
+except ApiCommitConflictError as exc:
     for conflict in exc.conflicts:
         print(conflict.entity_id, conflict.field_diffs)
     tx.rebase()      # re-fetch baselines, keep your intents
