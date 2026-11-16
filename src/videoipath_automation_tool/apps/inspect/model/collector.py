@@ -9,7 +9,6 @@ from videoipath_automation_tool.apps.inspect.model.common import (
     InspectApiCollection,
     InspectApiDescriptor,
     InspectApiEndpointStatus,
-    InspectApiRestV2Header,
     InspectApiStatusContext,
     InspectApiStatusSummary,
     InspectIconSize,
@@ -20,6 +19,7 @@ from videoipath_automation_tool.apps.inspect.model.common import (
     InspectVertexType,
     map_severity,
 )
+from videoipath_automation_tool.utils.cross_app_models import ApiResponseBaseModel, ApiResponseDataBaseModel
 
 
 class InspectApiGenericServiceFields(InspectApiBaseModel):
@@ -379,13 +379,12 @@ class InspectApiCollectorStatus(InspectApiBaseModel):
     collector: InspectApiCollector = Field(default_factory=InspectApiCollector)
 
 
-class InspectApiCollectorResponseData(InspectApiBaseModel):
+class InspectApiCollectorResponseData(InspectApiBaseModel, ApiResponseDataBaseModel):
     status: InspectApiCollectorStatus
 
 
-class InspectApiCollectorResponse(InspectApiBaseModel):
-    data: InspectApiCollectorResponseData
-    header: InspectApiRestV2Header
+class InspectApiCollectorResponse(InspectApiBaseModel, ApiResponseBaseModel[InspectApiCollectorResponseData]):
+    pass
 
 
 __all__ = [

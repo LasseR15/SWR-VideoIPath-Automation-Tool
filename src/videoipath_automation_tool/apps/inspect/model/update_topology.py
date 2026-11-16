@@ -12,12 +12,11 @@ from videoipath_automation_tool.apps.inspect.model.actions import (
 from videoipath_automation_tool.apps.inspect.model.common import (
     InspectApiBaseModel,
     InspectApiPostRequestHeader,
-    InspectApiRestV2Header,
 )
 from videoipath_automation_tool.apps.inspect.model.ngraph import (
     InspectApiNGraphResourceTransform,
 )
-
+from videoipath_automation_tool.utils.cross_app_models import ApiResponseDataBaseModel, ApiResponseBaseModel
 
 # The verified per-kind write shapes (2025.4.9):
 # - replaceDevices takes the device *edit form* (lookupInspectDevice.fields); the raw baseDevice
@@ -66,19 +65,21 @@ class InspectApiUpdateTopologyValidation(InspectApiBaseModel):
     result: InspectApiUpdateTopologyResult
 
 
-class InspectApiUpdateTopologyResponseData(InspectApiBaseModel):
+class InspectApiUpdateTopologyResponseData(InspectApiBaseModel, ApiResponseDataBaseModel):
     items: list[dict[str, Any]] = Field(default_factory=list)
     res: InspectApiUpdateTopologyResult
     validation: InspectApiUpdateTopologyValidation
 
+    @property
+    def success(self) -> bool:
+        return self.res.ok and self.validation.result.ok
 
-class InspectApiUpdateTopologyResponse(InspectApiBaseModel):
-    data: InspectApiUpdateTopologyResponseData
-    header: InspectApiRestV2Header
 
+class InspectApiUpdateTopologyResponse(InspectApiBaseModel, ApiResponseBaseModel[InspectApiUpdateTopologyResponseData]):
     @property
     def committed(self) -> bool:
-        return self.header.ok and self.data.res.ok and self.data.validation.result.ok
+        """ Alias to .success() """
+        return self.success
 
 
 __all__ = [

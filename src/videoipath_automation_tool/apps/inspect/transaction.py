@@ -29,10 +29,9 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 from pydantic import Field
 
-from videoipath_automation_tool.apps.inspect.errors import InspectError
+from videoipath_automation_tool.apps.inspect.errors import InspectError, InspectCommitError
 from videoipath_automation_tool.utils.cross_app_errors import (
     ApiCommitConflictError,
-    ApiCommitError,
     ApiCommitConflict,
     ApiEntityNotFoundError,
 )
@@ -561,7 +560,7 @@ class InspectTransaction:
             delta = self._build_delta()
             response = self._api.update_topology(delta)
             if not response.committed:
-                raise ApiCommitError(response)
+                raise InspectCommitError(response)
             created_ids = list(response.data.validation.createIds)
 
         if module_entries:

@@ -18,7 +18,6 @@ import threading
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
-from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
@@ -42,7 +41,7 @@ from videoipath_automation_tool.apps.inspect.model.common import (
     InspectSeverity,
     format_repr,
 )
-from videoipath_automation_tool.utils.cross_app_classes import HydrationLevel
+from videoipath_automation_tool.utils.cross_app_models import HydrationLevel
 
 if TYPE_CHECKING:
     from videoipath_automation_tool.apps.inspect.api import InspectAPI

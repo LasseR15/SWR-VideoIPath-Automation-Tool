@@ -8,7 +8,6 @@ from videoipath_automation_tool.apps.inspect.model.common import (
     InspectApiBaseModel,
     InspectApiDescriptor,
     InspectApiPostRequestHeader,
-    InspectApiRestV2Header,
     InspectCodecFormat,
     InspectConfigPriority,
     InspectIconSize,
@@ -20,6 +19,7 @@ from videoipath_automation_tool.apps.inspect.model.common import (
     InspectVertexType,
 )
 from videoipath_automation_tool.apps.inspect.model.virtual import InspectApiVirtualDeviceFields
+from videoipath_automation_tool.utils.cross_app_models import ApiResponseBaseModel, ApiResponseDataBaseModel
 
 
 class InspectApiLookupInspectDeviceRequest(InspectApiBaseModel):
@@ -46,14 +46,13 @@ class InspectApiLookupInspectDeviceFields(InspectApiBaseModel):
     virtualDeviceFields: InspectApiVirtualDeviceFields | None = None
 
 
-class InspectApiLookupInspectDeviceResponseData(InspectApiBaseModel):
+class InspectApiLookupInspectDeviceResponseData(InspectApiBaseModel, ApiResponseDataBaseModel):
     assignedTags: InspectApiAssignedTags
     fields: InspectApiLookupInspectDeviceFields
 
 
-class InspectApiLookupInspectDeviceResponse(InspectApiBaseModel):
-    data: InspectApiLookupInspectDeviceResponseData
-    header: InspectApiRestV2Header
+class InspectApiLookupInspectDeviceResponse(InspectApiBaseModel, ApiResponseBaseModel[InspectApiLookupInspectDeviceResponseData]):
+    pass
 
 
 # --- Vertex lookup / edit form (also the replaceVertices write shape, verified 2025.4.9) ---
@@ -142,7 +141,7 @@ class InspectApiLookupVerticesRequest(InspectApiBaseModel):
     data: list[str]
 
 
-class InspectApiLookupVertexResponseData(InspectApiBaseModel):
+class InspectApiLookupVertexResponseData(InspectApiBaseModel, ApiResponseDataBaseModel):
     assignedTags: InspectApiAssignedTags | None = None
     context: dict[str, Any] | None = None
     customSchemas: dict[str, Any] = Field(default_factory=dict)
@@ -152,14 +151,12 @@ class InspectApiLookupVertexResponseData(InspectApiBaseModel):
     vertexType: InspectVertexType | str | None = None
 
 
-class InspectApiLookupVertexResponse(InspectApiBaseModel):
-    data: InspectApiLookupVertexResponseData
-    header: InspectApiRestV2Header
+class InspectApiLookupVertexResponse(InspectApiBaseModel, ApiResponseBaseModel[InspectApiLookupVertexResponseData]):
+    pass
 
 
-class InspectApiLookupVerticesResponse(InspectApiBaseModel):
-    data: dict[str, InspectApiLookupVertexResponseData]
-    header: InspectApiRestV2Header
+class InspectApiLookupVerticesResponse(InspectApiBaseModel, ApiResponseBaseModel[dict[str, InspectApiLookupVertexResponseData]]):
+    pass
 
 
 # --- Edge lookup (also the replaceEdges write shape, verified 2025.4.9) ---
@@ -198,9 +195,8 @@ class InspectApiLookupEdgeResponseItem(InspectApiBaseModel):
     toDevice: str | None = None
 
 
-class InspectApiLookupEdgesResponse(InspectApiBaseModel):
-    data: dict[str, InspectApiLookupEdgeResponseItem]
-    header: InspectApiRestV2Header
+class InspectApiLookupEdgesResponse(InspectApiBaseModel, ApiResponseBaseModel[dict[str, InspectApiLookupEdgeResponseItem]]):
+    pass
 
 
 class InspectApiLookupSyncInfoRequest(InspectApiBaseModel):
@@ -216,9 +212,8 @@ class InspectApiLookupSyncInfoItem(InspectApiBaseModel):
     update: dict[str, Any] = Field(default_factory=dict)
 
 
-class InspectApiLookupSyncInfoResponse(InspectApiBaseModel):
-    data: dict[str, InspectApiLookupSyncInfoItem]
-    header: InspectApiRestV2Header
+class InspectApiLookupSyncInfoResponse(InspectApiBaseModel, ApiResponseBaseModel[dict[str, InspectApiLookupSyncInfoItem]]):
+    pass
 
 
 class InspectApiAddDevicesItem(InspectApiBaseModel):

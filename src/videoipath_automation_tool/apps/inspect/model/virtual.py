@@ -16,7 +16,6 @@ from pydantic import Field
 from videoipath_automation_tool.apps.inspect.model.common import (
     InspectApiBaseModel,
     InspectApiPostRequestHeader,
-    InspectApiRestV2Header,
     InspectApiSimpleActionResult,
     InspectCodecFormat,
     InspectConfigPriority,
@@ -25,6 +24,7 @@ from videoipath_automation_tool.apps.inspect.model.common import (
     InspectVertexType,
 )
 from videoipath_automation_tool.apps.inspect.model.ngraph import InspectApiNGraphElementType
+from videoipath_automation_tool.utils.cross_app_models import ApiResponseDataBaseModel, ApiResponseBaseModel
 
 
 class InspectApiVirtualPortFromTemplate(InspectApiBaseModel):
@@ -80,15 +80,14 @@ class InspectApiUpdateVirtualInstancesValidation(InspectApiBaseModel):
     result: InspectApiSimpleActionResult
 
 
-class InspectApiUpdateVirtualInstancesResponseData(InspectApiBaseModel):
+class InspectApiUpdateVirtualInstancesResponseData(InspectApiBaseModel, ApiResponseDataBaseModel):
     addedDeviceLabels: dict[str, str] = Field(default_factory=dict)
     res: InspectApiSimpleActionResult
     validation: InspectApiUpdateVirtualInstancesValidation
 
 
-class InspectApiUpdateVirtualInstancesResponse(InspectApiBaseModel):
-    data: InspectApiUpdateVirtualInstancesResponseData
-    header: InspectApiRestV2Header
+class InspectApiUpdateVirtualInstancesResponse(InspectApiBaseModel, ApiResponseBaseModel[InspectApiUpdateVirtualInstancesResponseData]):
+    pass
 
 
 class InspectApiVirtualTemplateVertex(InspectApiBaseModel):

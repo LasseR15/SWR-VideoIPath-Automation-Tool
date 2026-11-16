@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from videoipath_automation_tool.utils.cross_app_models import ApiBaseModel, ApiResponseDataBaseModel, \
+    ApiResponseBaseModel, ApiResponseHeaderBaseModel
+
 if TYPE_CHECKING:
     from videoipath_automation_tool.apps.inspect.snapshot import InspectSnapshot
 
@@ -129,8 +132,8 @@ def format_repr(obj: object, /, **fields: Any) -> str:
     return f"{type(obj).__name__}({', '.join(parts)})"
 
 
-class InspectApiBaseModel(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, validate_assignment=True, extra="allow")
+class InspectApiBaseModel(ApiBaseModel):
+    pass
 
 
 class InspectInternalModel(BaseModel):
@@ -219,34 +222,25 @@ class InspectServiceStatus(InspectApiBaseModel):
     total: InspectApiStatusSummary | None = None
 
 
-class InspectApiRestV2Header(InspectApiBaseModel):
-    auth: bool
-    caption: str
-    code: str
-    errorCodes: list[Any] = Field(default_factory=list)
-    errorDetails: list[Any] = Field(default_factory=list)
-    id: str
-    msg: list[str] = Field(default_factory=list)
-    ok: bool
-    user: str
-
-
 class InspectApiPostRequestHeader(InspectApiBaseModel):
     id: int = 0
 
 
-class InspectApiSimpleActionResult(InspectApiBaseModel):
+class InspectApiSimpleActionResult(ApiResponseDataBaseModel):
     msg: list[str] = Field(default_factory=list)
     ok: bool
 
+    @property
+    def success(self) -> bool:
+        return self.ok
 
-class InspectApiSimpleActionResponse(InspectApiBaseModel):
-    data: InspectApiSimpleActionResult
-    header: InspectApiRestV2Header
+
+class InspectApiSimpleActionResponse(ApiResponseBaseModel[InspectApiSimpleActionResult], InspectApiBaseModel):
+    pass
 
 
 class InspectApiActionValidationErrorResponse(InspectApiBaseModel):
-    header: InspectApiRestV2Header
+    header: ApiResponseHeaderBaseModel
 
 
 # --- Internal ---
@@ -272,7 +266,6 @@ __all__ = [
     "InspectApiDescriptor",
     "InspectApiEndpointStatus",
     "InspectApiPostRequestHeader",
-    "InspectApiRestV2Header",
     "InspectServiceStatus",
     "InspectApiSimpleActionResponse",
     "InspectApiSimpleActionResult",

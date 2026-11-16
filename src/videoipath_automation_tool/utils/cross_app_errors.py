@@ -1,5 +1,3 @@
-from videoipath_automation_tool.apps import InspectApiUpdateTopologyResponse
-
 
 class GeneralApiError(Exception):
     """Base class for all API errors."""
@@ -31,21 +29,7 @@ class ApiEntityNotFoundError(GeneralApiError):
 
 
 class ApiCommitError(GeneralApiError):
-    """A commit failed (validation gate or apply gate).
-
-    HTTP/envelope success is not commit success: the server can return ``header.ok == true``
-    while ``data.res.ok`` or ``data.validation.result.ok`` is ``false``. This carries the full
-    typed response so callers can inspect ``validation.details`` and ``res.msg``.
-    """
-
-    # TODO: Remove import and usage of this InspectApiUpdateTopologyResponse model and implement own one
-    def __init__(self, response: "InspectApiUpdateTopologyResponse") -> None:
-        self.response = response
-        self.result = response.data.res
-        self.validation = response.data.validation
-        messages = list(self.result.msg) + list(self.validation.result.msg)
-        detail = "; ".join(m for m in messages if m) or "commit rejected by the server"
-        super().__init__(f"API commit failed: {detail}")
+    """An API commit was rejected."""
 
 
 class ApiCommitConflict:
