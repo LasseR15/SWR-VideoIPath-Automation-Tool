@@ -55,7 +55,8 @@ from videoipath_automation_tool.apps.inspect.model.virtual import (
     InspectApiVirtualTemplateItem,
 )
 from videoipath_automation_tool.connector.vip_connector import VideoIPathConnector
-from videoipath_automation_tool.utils.cross_app_utils import create_fallback_logger, extract_items_from_rsp
+from videoipath_automation_tool.utils.cross_app_utils import create_fallback_logger, extract_items_from_rsp, \
+    build_post_envelope, extract_header_dict_from_rsp
 
 from . import queries
 
@@ -111,7 +112,7 @@ class InspectAPI:
     def get_collector_full(self) -> InspectApiCollectorResponse:
         """The full collector aggregate (eager / fallback mode)."""
         response = self.vip_connector.rest.get(queries.collector_full(), allow_projection=True)
-        return InspectApiCollectorResponse.model_validate({"data": response.data, "header": _header_dict(response)})
+        return InspectApiCollectorResponse.model_validate({"data": response.data, "header": extract_header_dict_from_rsp(response)})
 
     # --- Virtual device / port-template reads ---
 
@@ -152,29 +153,29 @@ class InspectAPI:
     def lookup_inspect_device(self, device_id: str) -> InspectApiLookupInspectDeviceResponse:
         request = InspectApiLookupInspectDeviceRequest(data=device_id)
         response = self.vip_connector.rest.post("/rest/v2/actions/status/collector/lookupInspectDevice", request)
-        return InspectApiLookupInspectDeviceResponse.model_validate(_post_envelope(response))
+        return InspectApiLookupInspectDeviceResponse.model_validate(build_post_envelope(response))
 
     def lookup_vertices(self, vertex_ids: list[str]) -> InspectApiLookupVerticesResponse:
         request = InspectApiLookupVerticesRequest(data=vertex_ids)
         response = self.vip_connector.rest.post("/rest/v2/actions/status/collector/lookupInspectVertexByIds", request)
-        return InspectApiLookupVerticesResponse.model_validate(_post_envelope(response))
+        return InspectApiLookupVerticesResponse.model_validate(build_post_envelope(response))
 
     def lookup_edges(self, edge_ids: list[str]) -> InspectApiLookupEdgesResponse:
         request = InspectApiLookupEdgesRequest(data=edge_ids)
         response = self.vip_connector.rest.post("/rest/v2/actions/status/collector/lookupInspectEdgesByIds", request)
-        return InspectApiLookupEdgesResponse.model_validate(_post_envelope(response))
+        return InspectApiLookupEdgesResponse.model_validate(build_post_envelope(response))
 
     def lookup_sync_info(self, device_ids: list[str]) -> InspectApiLookupSyncInfoResponse:
         request = InspectApiLookupSyncInfoRequest(data=device_ids)
         response = self.vip_connector.rest.post("/rest/v2/actions/status/collector/lookupSyncInfo", request)
-        return InspectApiLookupSyncInfoResponse.model_validate(_post_envelope(response))
+        return InspectApiLookupSyncInfoResponse.model_validate(build_post_envelope(response))
 
     # --- Writes ---
 
     def update_topology(self, delta: InspectApiUpdateTopologyData) -> InspectApiUpdateTopologyResponse:
         request = InspectApiUpdateTopologyRequest(data=delta)
         response = self.vip_connector.rest.post("/rest/v2/actions/status/collector/updateTopology", request)
-        return InspectApiUpdateTopologyResponse.model_validate(_post_envelope(response))
+        return InspectApiUpdateTopologyResponse.model_validate(build_post_envelope(response))
 
     def assign_tag(self, tag_id: str, element_ids: list[str]) -> InspectApiSimpleActionResponse:
         """Bind ``tag_id`` to one or more resource ids (e.g. ``device:{modulePid}``)."""
@@ -191,7 +192,7 @@ class InspectAPI:
     def add_devices(self, items: list[InspectApiAddDevicesItem]) -> InspectApiSimpleActionResponse:
         request = InspectApiAddDevicesRequest(data=items)
         response = self.vip_connector.rest.post("/rest/v2/actions/status/network/addDevices", request)
-        return InspectApiSimpleActionResponse.model_validate(_post_envelope(response))
+        return InspectApiSimpleActionResponse.model_validate(build_post_envelope(response))
 
     def sync_devices(
         self, device_ids: list[str], add_only: bool = True, conflict_strategy: int = 0
@@ -200,7 +201,7 @@ class InspectAPI:
             data=InspectApiSyncDevicesRequestData(ids=device_ids, addOnly=add_only, conflictStrategy=conflict_strategy)
         )
         response = self.vip_connector.rest.post("/rest/v2/actions/status/network/syncDevices", request)
-        return InspectApiSimpleActionResponse.model_validate(_post_envelope(response))
+        return InspectApiSimpleActionResponse.model_validate(build_post_envelope(response))
 
     def update_virtual_instances(
         self, data: InspectApiUpdateVirtualInstancesData
@@ -208,19 +209,19 @@ class InspectAPI:
         """Create virtual devices (UI: Create virtual devices); wire also supports update/remove."""
         request = InspectApiUpdateVirtualInstancesRequest(data=data)
         response = self.vip_connector.rest.post("/rest/v2/actions/status/network/updateVirtualInstances", request)
-        return InspectApiUpdateVirtualInstancesResponse.model_validate(_post_envelope(response))
+        return InspectApiUpdateVirtualInstancesResponse.model_validate(build_post_envelope(response))
 
     def update_virtual_templates(self, data: InspectApiUpdateVirtualTemplatesData) -> InspectApiSimpleActionResponse:
         """Add or remove port templates (UI: Manage port templates)."""
         request = InspectApiUpdateVirtualTemplatesRequest(data=data)
         response = self.vip_connector.rest.post("/rest/v2/actions/status/network/updateVirtualTemplates", request)
-        return InspectApiSimpleActionResponse.model_validate(_post_envelope(response))
+        return InspectApiSimpleActionResponse.model_validate(build_post_envelope(response))
 
     def add_virtual_topology(self, data: InspectApiAddVirtualTopologyData) -> InspectApiSimpleActionResponse:
         """Add ports from templates to an existing virtual-device module."""
         request = InspectApiAddVirtualTopologyRequest(data=data)
         response = self.vip_connector.rest.post("/rest/v2/actions/status/network/addVirtualTopology", request)
-        return InspectApiSimpleActionResponse.model_validate(_post_envelope(response))
+        return InspectApiSimpleActionResponse.model_validate(build_post_envelope(response))
 
 
 # --- Internal ---
@@ -285,21 +286,9 @@ def _fdescriptor_label(descriptor: Any) -> str | None:
     return label if isinstance(label, str) and label else None
 
 
-def _header_dict(response: Any) -> dict[str, Any]:
-    header = getattr(response, "header", None)
-    if header is None:
-        return {}
-    return header.model_dump(mode="json") if hasattr(header, "model_dump") else dict(header)
-
-
-def _post_envelope(response: Any) -> dict[str, Any]:
-    """Reassemble a ``{data, header}`` dict from a ResponseV2Post for DTO validation."""
-    return {"data": response.data, "header": _header_dict(response)}
-
-
 def _tag_action_response(response: Any) -> InspectApiSimpleActionResponse:
     """Normalize assignTag / unassignTag responses (server often returns ``data: null``)."""
-    header = _header_dict(response)
+    header = extract_header_dict_from_rsp(response)
     data = response.data
     if not isinstance(data, dict):
         data = {"ok": bool(header.get("ok")), "msg": list(header.get("msg") or [])}

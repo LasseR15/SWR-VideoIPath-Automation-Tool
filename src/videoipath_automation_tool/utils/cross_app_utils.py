@@ -68,6 +68,18 @@ def build_req_path_actions(path: str) -> str:
     return encode_req_path(_REST_API_PATH + "/actions" + path)
 
 
+def extract_header_dict_from_rsp(response: Any) -> dict[str, Any]:
+    header = getattr(response, "header", None)
+    if header is None:
+        return {}
+    return header.model_dump(mode="json") if hasattr(header, "model_dump") else dict(header)
+
+
+def build_post_envelope(response: Any) -> dict[str, Any]:
+    """Reassemble a ``{data, header}`` dict from a ResponseV2Post for DTO validation."""
+    return {"data": response.data, "header": extract_header_dict_from_rsp(response)}
+
+
 
 # --- Deprecated Functions for Device ID Validation ---
 # --- Device ID string validation ---
