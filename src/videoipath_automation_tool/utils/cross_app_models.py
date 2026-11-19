@@ -1,7 +1,19 @@
 from enum import Enum
-from typing import Any, TypeVar, Generic
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class InternalModel(BaseModel):
+    """Base model for validated, mutable objects used inside an app."""
+
+    model_config = ConfigDict(validate_assignment=True, arbitrary_types_allowed=True)
+
+
+class FrozenModel(InternalModel):
+    """Immutable, slot-backed variant of :class:`InternalModel`."""
+
+    model_config = ConfigDict(frozen=True, slots=True, validate_assignment=True, arbitrary_types_allowed=True)
 
 
 class HydrationLevel(str, Enum):

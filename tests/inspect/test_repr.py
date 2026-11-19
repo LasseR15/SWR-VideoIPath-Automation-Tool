@@ -199,13 +199,15 @@ def test_transaction_and_commit_result_reprs() -> None:
 
 
 def test_format_repr_skips_failing_callables() -> None:
-    from videoipath_automation_tool.apps.inspect.model.common import format_repr
+    from videoipath_automation_tool.apps.inspect.model.common import format_repr as inspect_format_repr
+    from videoipath_automation_tool.utils.cross_app_utils import format_repr
 
     class _Probe:
         pass
 
     text = format_repr(_Probe(), id="a", label=lambda: (_ for _ in ()).throw(RuntimeError("boom")), extra=None)
     assert text == "_Probe(id='a')"
+    assert inspect_format_repr is format_repr
 
 
 def test_offline_vertex_repr_without_lookup(snap: tuple[InspectSnapshot, FakeFetcher]) -> None:

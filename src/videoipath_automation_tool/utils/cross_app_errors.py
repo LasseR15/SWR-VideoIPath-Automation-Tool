@@ -4,19 +4,20 @@ class GeneralApiError(Exception):
 
 
 class ApiQueryTooLongError(GeneralApiError):
-    """A scoped collector query URL exceeds the server/proxy URI length limit (HTTP 414).
+    """A request path exceeds the configured URI length limit.
 
-    The lib trims its skeleton projections to stay within the limit; this is
-    raised only if a caller-built query is too long. Fall back to ``refresh(load="full")``.
+    Callers may provide an app-specific recovery suggestion without coupling this
+    shared exception to a particular endpoint or loading strategy.
     """
 
-    def __init__(self, length: int, limit: int) -> None:
+    def __init__(self, length: int, limit: int, suggestion: str | None = None) -> None:
         self.length = length
         self.limit = limit
-        super().__init__(
-            f"Collector query URL is {length} characters, exceeding the {limit}-character limit. "
-            f"Use a shorter projection or '.refresh(load=\"full\")'."
-        )
+        self.suggestion = suggestion
+        message = f"Request path is {length} characters, exceeding the {limit}-character limit."
+        if suggestion:
+            message = f"{message} {suggestion}"
+        super().__init__(message)
 
 
 class ApiEntityNotFoundError(GeneralApiError):

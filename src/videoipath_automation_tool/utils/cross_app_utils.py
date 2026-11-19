@@ -22,6 +22,24 @@ MAX_QUERY_LENGTH = 4000
 _REST_API_PATH = "/rest/v2"
 
 
+def format_repr(obj: object, /, **fields: Any) -> str:
+    """Return a concise ``ClassName(k=v, ...)`` representation.
+
+    Callable values are evaluated defensively and skipped if evaluation fails.
+    ``None`` values are omitted to keep developer-facing representations useful.
+    """
+    parts: list[str] = []
+    for key, value in fields.items():
+        if callable(value):
+            try:
+                value = value()
+            except Exception:
+                continue
+        if value is not None:
+            parts.append(f"{key}={value!r}")
+    return f"{type(obj).__name__}({', '.join(parts)})"
+
+
 # --- Fallback Logger ---
 def create_fallback_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
@@ -64,6 +82,7 @@ def encode_req_path(path: str) -> str:
 def build_req_path_data(path: str) -> str:
     return encode_req_path(_REST_API_PATH + "/data" + path)
 
+
 def build_req_path_actions(path: str) -> str:
     return encode_req_path(_REST_API_PATH + "/actions" + path)
 
@@ -78,7 +97,6 @@ def extract_header_dict_from_rsp(response: Any) -> dict[str, Any]:
 def build_post_envelope(response: Any) -> dict[str, Any]:
     """Reassemble a ``{data, header}`` dict from a ResponseV2Post for DTO validation."""
     return {"data": response.data, "header": extract_header_dict_from_rsp(response)}
-
 
 
 # --- Deprecated Functions for Device ID Validation ---

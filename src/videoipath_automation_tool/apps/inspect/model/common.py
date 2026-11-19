@@ -5,10 +5,17 @@ from collections.abc import Callable
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import Field, field_validator
 
-from videoipath_automation_tool.utils.cross_app_models import ApiBaseModel, ApiResponseDataBaseModel, \
-    ApiResponseBaseModel, ApiResponseHeaderBaseModel
+from videoipath_automation_tool.utils.cross_app_models import (
+    ApiBaseModel,
+    ApiResponseBaseModel,
+    ApiResponseDataBaseModel,
+    ApiResponseHeaderBaseModel,
+    FrozenModel,
+    InternalModel,
+)
+from videoipath_automation_tool.utils.cross_app_utils import format_repr
 
 if TYPE_CHECKING:
     from videoipath_automation_tool.apps.inspect.snapshot import InspectSnapshot
@@ -116,32 +123,12 @@ InspectCodecFormat = Literal["Video", "Audio", "ASI", "Ancillary"]
 InspectMapCType = Literal["Topology", "Geo"]
 
 
-def format_repr(obj: object, /, **fields: Any) -> str:
-    """Concise ``ClassName(k=v, ...)`` repr. Callable values are evaluated defensively
-    (skipped on error); None values are omitted. Never raises."""
-    parts: list[str] = []
-    for key, value in fields.items():
-        if callable(value):
-            try:
-                value = value()
-            except Exception:
-                continue
-        if value is None:
-            continue
-        parts.append(f"{key}={value!r}")
-    return f"{type(obj).__name__}({', '.join(parts)})"
-
-
 class InspectApiBaseModel(ApiBaseModel):
     pass
 
 
-class InspectInternalModel(BaseModel):
-    model_config = ConfigDict(validate_assignment=True, arbitrary_types_allowed=True)
-
-
-class InspectFrozenModel(InspectInternalModel):
-    model_config = ConfigDict(frozen=True, slots=True, validate_assignment=True, arbitrary_types_allowed=True)
+InspectInternalModel = InternalModel
+InspectFrozenModel = FrozenModel
 
 
 class InspectEditableModel(InspectInternalModel, ABC):
@@ -151,8 +138,6 @@ class InspectEditableModel(InspectInternalModel, ABC):
     Subclasses must provide ``snapshot``, ``id``, and :attr:`_edit_kind`. Staging helpers
     (:meth:`_stage` / :meth:`_staged`) are shared here.
     """
-
-    model_config = ConfigDict(validate_assignment=True, arbitrary_types_allowed=True)
 
     snapshot: InspectSnapshot
 
