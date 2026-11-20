@@ -30,3 +30,8 @@ At the lowest level, this layer handles fundamental methods and models for **RES
 - Provide **a consistent and simple interface** through abstraction. Provide easy-to-use methods with detailed IntelliSense support.
 - **Ensure data integrity** by using Pydantic models for data validation and structured object handling.
 - Hide complex API requests and validation processes from the user.  
+
+## App-specific architecture
+
+- [Inspect application architecture](inspect-app/README.md)
+- [UAC transaction semantics](uac-transactions.md)
