@@ -1,9 +1,11 @@
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Any
 
 import requests
+
+from videoipath_automation_tool.utils.cross_app_errors import ApiHttpError
 
 
 class VideoIPathBaseConnectorTimeouts:
@@ -136,7 +138,11 @@ class VideoIPathBaseConnector(ABC):
         self._logger.debug(f"HTTP Response Headers: {response.headers}")
 
     def _execute_request(
-        self, method: str, url: str, timeout: int, request_payload: Optional[dict] = None
+        self,
+        method: str,
+        url: str,
+        timeout: int,
+        request_payload: dict[str, Any] | None = None,
     ) -> requests.Response:
         """Executes an HTTP request and returns the response."""
 
@@ -165,13 +171,23 @@ class VideoIPathBaseConnector(ABC):
                 )
         except KeyError:
             self._handle_request_exceptions(url, Exception(f"Unsupported HTTP method: {method}"))
-        except Exception as e:
-            self._handle_request_exceptions(url, e)
+        except requests.RequestException as error:
+            self._handle_request_exceptions(url, error)
 
         self._log_response(response)
 
         if not response.ok:
-            raise Exception(f"Error in API response for path {url}: {response.status_code}, {response.reason}")
+            try:
+                response_body = response.json()
+            except requests.exceptions.JSONDecodeError:
+                response_body = response.text
+            raise ApiHttpError(
+                method=method,
+                url=url,
+                status_code=response.status_code,
+                reason=response.reason,
+                response_body=response_body,
+            )
 
         return response
 

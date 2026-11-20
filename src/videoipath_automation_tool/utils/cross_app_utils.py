@@ -6,7 +6,7 @@ from typing import Any
 
 from typing_extensions import deprecated
 
-from videoipath_automation_tool.utils.cross_app_errors import ApiQueryTooLongError
+from videoipath_automation_tool.utils.cross_app_errors import ApiMalformedResponseError, ApiQueryTooLongError
 from videoipath_automation_tool.validators.device_id import validate_device_id
 from videoipath_automation_tool.validators.virtual_device_id import validate_virtual_device_id
 
@@ -33,11 +33,26 @@ def format_repr(obj: object, /, **fields: Any) -> str:
         if callable(value):
             try:
                 value = value()
-            except Exception:
+            except Exception:  # noqa: BLE001, S112
+                # Representations must not fail because an optional property is unavailable.
                 continue
         if value is not None:
             parts.append(f"{key}={value!r}")
     return f"{type(obj).__name__}({', '.join(parts)})"
+
+
+def field_diffs(
+    baseline: dict[str, Any],
+    current: dict[str, Any],
+) -> dict[str, tuple[object, object]]:
+    """Return top-level field differences in the same shape used by commit conflicts."""
+    diffs: dict[str, tuple[object, object]] = {}
+    for key in set(baseline) | set(current):
+        before = baseline.get(key)
+        after = current.get(key)
+        if before != after:
+            diffs[key] = (before, after)
+    return diffs
 
 
 # --- Fallback Logger ---
@@ -72,12 +87,27 @@ def extract_items_from_rsp(data: dict[str, Any], *path: str) -> list[dict[str, A
     return []
 
 
+def extract_required_items_from_rsp(data: dict[str, Any], *path: str) -> list[dict[str, Any]]:
+    """Return a required ``_items`` collection or raise for malformed response data."""
+    node: Any = data
+    traversed: list[str] = []
+    for key in path:
+        traversed.append(key)
+        if not isinstance(node, dict) or key not in node or node[key] is None:
+            raise ApiMalformedResponseError(tuple(traversed), "an object")
+        node = node[key]
+    if not isinstance(node, dict) or not isinstance(node.get("_items"), list):
+        raise ApiMalformedResponseError((*path, "_items"), "a list")
+    return node["_items"]
+
+
 def encode_req_path(path: str) -> str:
     """Percent-encode a collector query path, preserving projection-grammar characters and validate length."""
     encoded = urllib.parse.quote(path, safe=_SAFE)
     if len(encoded) > MAX_QUERY_LENGTH:
         raise ApiQueryTooLongError(len(encoded), MAX_QUERY_LENGTH)
     return encoded
+
 
 def build_req_path_data(path: str) -> str:
     return encode_req_path(_REST_API_PATH + "/data" + path)

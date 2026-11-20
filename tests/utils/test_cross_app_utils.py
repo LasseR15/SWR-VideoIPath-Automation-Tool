@@ -1,7 +1,7 @@
 import pytest
 
 from videoipath_automation_tool.utils import cross_app_utils
-from videoipath_automation_tool.utils.cross_app_errors import ApiQueryTooLongError
+from videoipath_automation_tool.utils.cross_app_errors import ApiMalformedResponseError, ApiQueryTooLongError
 from videoipath_automation_tool.utils.cross_app_utils import format_repr
 
 
@@ -11,6 +11,7 @@ def test_encode_preserves_grammar_characters_and_encodes_quotes_and_spaces() -> 
     assert "%22" in encoded  # double-quote encoded
     assert "/*/" in encoded  # star preserved
     assert "'z'" in encoded  # single-quote preserved
+
 
 def test_query_too_long_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cross_app_utils, "MAX_QUERY_LENGTH", 10)
@@ -30,3 +31,15 @@ def test_format_repr_skips_unavailable_values() -> None:
     )
 
     assert text == "_Probe(id='a')"
+
+
+def test_required_items_raise_for_malformed_response() -> None:
+    with pytest.raises(ApiMalformedResponseError):
+        cross_app_utils.extract_required_items_from_rsp({}, "status", "users")
+
+
+def test_field_diffs_returns_changed_values() -> None:
+    assert cross_app_utils.field_diffs({"a": 1, "b": "same"}, {"a": 2, "b": "same", "c": True}) == {
+        "a": (1, 2),
+        "c": (None, True),
+    }

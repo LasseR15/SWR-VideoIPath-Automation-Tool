@@ -236,6 +236,7 @@ class VideoIPathApp:
                 self._logger.warning(str(exc))
                 self._topology_api = None
             self._preferences_api = self.preferences._preferences_api
+            self._uac_api = self.preferences.uac._uac_api
             self._profile_api = self.profile._profile_api
             self._inspect_api = self.inspect._inspect_api
 

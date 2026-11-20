@@ -1,5 +1,5 @@
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 
 from videoipath_automation_tool.utils.cross_app_models import FrozenModel, InternalModel
 

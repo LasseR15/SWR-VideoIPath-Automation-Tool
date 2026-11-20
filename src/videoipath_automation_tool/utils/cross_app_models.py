@@ -55,8 +55,8 @@ class ApiResponseBaseModel(ApiBaseModel, Generic[_DataT]):
 
     @property
     def success(self) -> bool:
-        """ Returns the status reported inside the ``header`` part of the response body
-            and calls the success check from data if the data attribute extends the ApiResponseDataBaseModel.
+        """Returns the status reported inside the ``header`` part of the response body
+        and calls the success check from data if the data attribute extends the ApiResponseDataBaseModel.
         """
         if isinstance(self.data, ApiResponseDataBaseModel):
             return self.header.ok and self.data.success

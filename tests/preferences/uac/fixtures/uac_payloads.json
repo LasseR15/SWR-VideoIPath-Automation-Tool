@@ -1,0 +1,190 @@
+{
+  "users": {
+    "status": {
+      "userman": {
+        "users": {
+          "_items": [
+            {
+              "_id": "user-a",
+              "_rev": "1-00000000-0000-4000-8000-000000000001",
+              "_vid": "user-a",
+              "active": true,
+              "appPrefs": {},
+              "authMethod": "local",
+              "authState": {
+                "disabledByAdmin": false,
+                "lastPasswordUpdateTimestamp": null
+              },
+              "description": "Test user",
+              "email": "user-a@example.invalid",
+              "fullName": "Test User A",
+              "homeDomain": "grp:default",
+              "isAdmin": false,
+              "ldapServers": {
+                "all": true,
+                "servers": []
+              },
+              "locale": "en_GB.UTF-8",
+              "name": "user-a",
+              "noSession": false,
+              "organization": "example-org",
+              "permissions": {
+                "type": "adhoc",
+                "permissions": {
+                  "global": {
+                    "roleIds": [
+                      "role-read"
+                    ],
+                    "direct": null
+                  },
+                  "home": {
+                    "roleIds": [],
+                    "direct": null
+                  },
+                  "specific": {}
+                }
+              },
+              "permissionsInfo": {},
+              "phone": ""
+            },
+            {
+              "_id": "user-b",
+              "_rev": "0-00000000-0000-4000-8000-000000000002",
+              "active": true,
+              "authMethod": "sso",
+              "name": "user-b",
+              "fullName": "Test User B",
+              "permissions": {
+                "type": "template",
+                "templateId": "template-read"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "domains": {
+    "config": {
+      "domainman": {
+        "domains": {
+          "_items": [
+            {
+              "_id": "grp:domain-a",
+              "_rev": "2-00000000-0000-4000-8000-000000000003",
+              "_vid": "grp:domain-a",
+              "desc": {
+                "label": "Site A",
+                "desc": "Synthetic domain"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "roles": {
+    "config": {
+      "security": {
+        "users": {
+          "roles": {
+            "_items": [
+              {
+                "_id": "role-read",
+                "_rev": "3-00000000-0000-4000-8000-000000000004",
+                "_vid": "role-read",
+                "desc": {
+                  "label": "Read Access",
+                  "desc": "Synthetic read role"
+                },
+                "permissions": {
+                  "byResourceType": {
+                    "device": {
+                      "verbs": [
+                        "read"
+                      ],
+                      "inherited": []
+                    }
+                  }
+                },
+                "type": "domainRole"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "permissionTemplates": {
+    "config": {
+      "security": {
+        "users": {
+          "permissionTemplates": {
+            "_items": [
+              {
+                "_id": "template-read",
+                "_rev": "4-00000000-0000-4000-8000-000000000005",
+                "_vid": "template-read",
+                "desc": {
+                  "label": "Read Template",
+                  "desc": "Synthetic template"
+                },
+                "domainPermissions": {
+                  "global": {
+                    "roleIds": [],
+                    "direct": null
+                  },
+                  "home": {
+                    "roleIds": [
+                      "role-read"
+                    ],
+                    "direct": null
+                  },
+                  "specific": {}
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "ldapServers": {
+    "config": {
+      "userman": {
+        "ldapservers": {
+          "_items": [
+            {
+              "_id": "ldap.config",
+              "_vid": "ldap.config",
+              "account": "CN=test-user,OU=users,DC=example,DC=invalid",
+              "authentication": "simple",
+              "baseDn": "OU=users,DC=example,DC=invalid",
+              "encryption": false,
+              "host": "ldap.example",
+              "keyAttribute": "uid",
+              "name": "LDAP Test",
+              "password": "********",
+              "port": 389
+            }
+          ]
+        }
+      }
+    }
+  },
+  "passwordPolicy": {
+    "status": {
+      "userman": {
+        "passwordPolicy": {
+          "expiration": 0,
+          "expirationTest": false,
+          "expirationWarning": 5,
+          "lowerAndUpperCase": true,
+          "minLength": 12,
+          "numeric": true,
+          "specialChar": true
+        }
+      }
+    }
+  }
+}

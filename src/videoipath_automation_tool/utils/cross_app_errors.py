@@ -1,6 +1,49 @@
+from typing import Any
+
 
 class GeneralApiError(Exception):
     """Base class for all API errors."""
+
+
+class ApiHttpError(GeneralApiError):
+    """An HTTP response was rejected before an app could process its body."""
+
+    def __init__(
+        self,
+        *,
+        method: str,
+        url: str,
+        status_code: int,
+        reason: str,
+        response_body: Any = None,
+    ) -> None:
+        self.method = method
+        self.url = url
+        self.status_code = status_code
+        self.reason = reason
+        self.response_body = response_body
+        super().__init__(f"{method} request to '{url}' failed with HTTP {status_code}: {reason}")
+
+
+class ApiResponseError(GeneralApiError):
+    """A transport succeeded but VideoIPath reported an unsuccessful response header."""
+
+    def __init__(self, path: str, code: str, messages: list[str], details: Any = None) -> None:
+        self.path = path
+        self.code = code
+        self.messages = messages
+        self.details = details
+        message = "; ".join(messages) or code
+        super().__init__(f"API request to '{path}' failed: {message}")
+
+
+class ApiMalformedResponseError(GeneralApiError):
+    """A successful API response did not contain the expected response shape."""
+
+    def __init__(self, path: tuple[str, ...], expected: str) -> None:
+        self.path = path
+        self.expected = expected
+        super().__init__(f"Malformed API response at '{'/'.join(path)}': expected {expected}.")
 
 
 class ApiQueryTooLongError(GeneralApiError):
@@ -47,11 +90,10 @@ class ApiCommitConflict:
 
 
 class ApiCommitConflictError(GeneralApiError):
-    """A concurrent modification was detected before the commit was sent; nothing was written.
+    """A concurrent modification was detected before a write was sent; nothing was written.
 
-    The commit is aborted as a whole (matching the server's all-or-nothing apply). Callers can
-    inspect ``conflicts``, then either ``transaction.rebase()`` onto fresh state and retry, or
-    re-commit with ``check_conflicts=False`` to force last-writer-wins.
+    Callers can inspect ``conflicts``, refresh their baseline, and retry. Apps may optionally
+    expose an explicit ``check_conflicts=False`` override for last-writer-wins behavior.
     """
 
     def __init__(self, conflicts: list[ApiCommitConflict]) -> None:
@@ -59,5 +101,5 @@ class ApiCommitConflictError(GeneralApiError):
         ids = ", ".join(c.entity_id for c in conflicts)
         super().__init__(
             f"Concurrent modification detected for {len(conflicts)} entity(ies) [{ids}]; commit aborted. "
-            f"Rebase the transaction or commit with check_conflicts=False to override."
+            f"Refresh the baseline and retry, or explicitly override conflict checking."
         )

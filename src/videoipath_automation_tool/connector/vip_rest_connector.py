@@ -1,12 +1,13 @@
-from typing import Literal
+from typing import ClassVar, Literal
 
 from videoipath_automation_tool.connector.models.request_rest_v2 import RequestV2Patch, RequestV2Post
 from videoipath_automation_tool.connector.models.response_rest_v2 import ResponseV2Get, ResponseV2Patch, ResponseV2Post
 from videoipath_automation_tool.connector.vip_base_connector import VideoIPathBaseConnector
+from videoipath_automation_tool.utils.cross_app_errors import ApiResponseError, GeneralApiError
 
 
 class VideoIPathRestConnector(VideoIPathBaseConnector):
-    ALLOWED_URLS = {
+    ALLOWED_URLS: ClassVar[dict[str, dict[str, set[str]]]] = {
         "GET": {
             "PREFIXES": {"/rest/v2/data/config/", "/rest/v2/data/status/"},
             "EXACT_MATCHES": {"/rest/v2/data/*"},
@@ -17,6 +18,7 @@ class VideoIPathRestConnector(VideoIPathBaseConnector):
                 "/rest/v2/actions/status/collector/",
                 "/rest/v2/actions/status/network/",
                 "/rest/v2/actions/status/tags/",
+                "/rest/v2/actions/userman/",
             },
             "EXACT_MATCHES": {"/rest/v2/actions/status/pathman/validateTopologyUpdate"},
         },
@@ -84,7 +86,7 @@ class VideoIPathRestConnector(VideoIPathBaseConnector):
         response_object = ResponseV2Get.model_validate(response.json())
 
         if response_object.header.code != "OK":
-            raise Exception(f"Error in API response: {response_object.header.code}, {response_object.header.msg}")
+            raise _response_error(url_path, response_object.header)
 
         if auth_check:
             if not response_object.header.auth:
@@ -148,7 +150,7 @@ class VideoIPathRestConnector(VideoIPathBaseConnector):
         response_object = ResponseV2Patch.model_validate(response.json())
 
         if response_object.header.code != "OK":
-            raise Exception(f"Error in API response: {response_object.header.code}, {response_object.header.msg}")
+            raise _response_error(url_path, response_object.header)
 
         if auth_check:
             if not response_object.header.auth:
@@ -211,7 +213,7 @@ class VideoIPathRestConnector(VideoIPathBaseConnector):
         response_object = ResponseV2Post.model_validate(response.json())
 
         if response_object.header.code != "OK":
-            raise Exception(f"Error in API response: {response_object.header.code}, {response_object.header.msg}")
+            raise _response_error(url_path, response_object.header)
 
         if auth_check:
             if not response_object.header.auth:
@@ -240,7 +242,7 @@ class VideoIPathRestConnector(VideoIPathBaseConnector):
         try:
             response = self.get(url, auth_check=False)
             return response and hasattr(response, "header") and response.header.code == "OK"
-        except Exception as error:
+        except (GeneralApiError, OSError, ValueError) as error:
             self._logger.error(f"Error while verifying connection to VideoIPath: {error}")
             return False
 
@@ -311,10 +313,20 @@ class VideoIPathRestConnector(VideoIPathBaseConnector):
             valid_methods = ", ".join(self.ALLOWED_URLS.keys())
             error_message = f"Invalid method for VideoIPath REST API: '{http_method}'. Valid methods: {valid_methods}."
             raise ValueError(error_message)
-
         if not (url_path in allowed_exact_matches or any(url_path.startswith(prefix) for prefix in allowed_prefixes)):
             error_message = (
                 f"Invalid URL path '{url_path}'. Allowed exact matches: {allowed_exact_matches}, "
                 f"allowed prefixes: {', '.join(allowed_prefixes)}"
             )
             raise ValueError(error_message)
+
+
+def _response_error(path: str, header: object) -> ApiResponseError:
+    raw_messages = getattr(header, "msg", None)
+    messages = [str(message) for message in raw_messages] if isinstance(raw_messages, list) else []
+    return ApiResponseError(
+        path,
+        str(getattr(header, "code", "UNKNOWN")),
+        messages,
+        getattr(header, "errorDetails", None),
+    )
